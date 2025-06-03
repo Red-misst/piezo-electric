@@ -1,0 +1,14 @@
+{
+  "name": "piezoelectric-road-monitor",
+  "version": "1.0.0",
+  "description": "Real-time monitoring of piezoelectric energy harvesting data",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.13.0",
+    "react-icons": "^4.10.1"
+  }
+}

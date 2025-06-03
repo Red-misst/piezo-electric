@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piezoelectric Road Energy Monitor</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- React and React DOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1>Piezoelectric Road Energy Monitor</h1>
+            <div class="header-controls">
+                <div class="mode-toggle">
+                    <button id="live-mode-btn" class="mode-btn">Live Monitoring</button>
+                    <button id="demo-mode-btn" class="mode-btn active">Historical Test</button>
+                </div>
+                <div class="status-indicators">
+                    <div id="connection-status" class="disconnected">Server: Disconnected</div>
+                    <div id="esp8266-status" class="disconnected">ESP8266: Disconnected</div>
+                </div>
+            </div>
+        </div>
+    </header>
+    
+    <main>
+        <div class="dashboard">
+            <div class="widget">
+                <div class="widget-icon" id="voltage-icon">
+                    <!-- Icon will be inserted by JS -->
+                </div>
+                <div class="widget-content">
+                    <h2>Voltage</h2>
+                    <div class="widget-value" id="voltage-value">0</div>
+                    <div class="widget-unit">V</div>
+                </div>
+            </div>
+            
+            <div class="widget">
+                <div class="widget-icon" id="pass-count-icon">
+                    <!-- Icon will be inserted by JS -->
+                </div>
+                <div class="widget-content">
+                    <h2>Vehicle Pass Count</h2>
+                    <div class="widget-value" id="pass-count-value">0</div>
+                    <div class="widget-unit">passes</div>
+                </div>
+            </div>
+            
+            <div class="widget">
+                <div class="widget-icon" id="energy-icon">
+                    <!-- Icon will be inserted by JS -->
+                </div>
+                <div class="widget-content">
+                    <h2>Energy</h2>
+                    <div class="widget-value" id="energy-value">0</div>
+                    <div class="widget-unit">Joules</div>
+                </div>
+            </div>
+            
+            <div class="widget">
+                <div class="widget-icon" id="runtime-icon">
+                    <!-- Icon will be inserted by JS -->
+                </div>
+                <div class="widget-content">
+                    <h2>Estimated LED Runtime</h2>
+                    <div class="widget-value" id="runtime-value">0</div>
+                    <div class="widget-unit">seconds</div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2>Voltage History</h2>
+                <div class="chart-controls">
+                    <button id="realtime-toggle" class="active">Real-time</button>
+                    <select title="Select time range" id="time-range">
+                        <option value="1">1 minute</option>
+                        <option value="5">5 minutes</option>
+                        <option value="15">15 minutes</option>
+                    </select>
+                </div>
+            </div>
+            <canvas id="voltage-chart"></canvas>
+        </div>
+    </main>
+
+    <script src="script.js"></script>
+</body>
+</html>
