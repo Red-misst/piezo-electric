@@ -47,7 +47,7 @@ flowchart TD
 | **Piezoelectric Discs** | 27mm diameter | 10x | Primary energy harvesting elements |
 | **Bridge Rectifier** | DB107 | 1x | AC to DC conversion |
 | **Capacitor** | 470µF, 25V | 1x | Energy storage and smoothing |
-| **Boost Converter** | MT3608 (2A) | 1x | Voltage regulation (3.3V → 5V) |
+| **Boost Converter** | XL6018 5A DC-DC | 1x | Voltage regulation (3.3V → 5V) |
 | **Battery** | 5V Rechargeable Li-ion | 1x | Energy storage buffer |
 | **Microcontroller** | ESP8266 (NodeMCU/Wemos D1) | 1x | IoT connectivity and monitoring |
 | **Switch** | Tactile Push Button | 1x | Manual vehicle pass simulation |
