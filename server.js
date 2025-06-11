@@ -25,13 +25,45 @@ let latestData = {
   mode: 'demo' // Add mode field to indicate data source
 };
 
+// Power insights data
+let powerInsights = {
+  totalEnergy: 0.0123,
+  avgEnergyPerVehicle: 0.000512,
+  peakVoltage: 3.9,
+  power: 0.0025,  // Watts
+  batteryChargePercent: 0.34, // 0-1 scale
+  lastUpdateTime: Date.now(),
+  timestamps: [],
+  voltageHistory: [],
+  energyHistory: [],
+  powerHistory: []
+};
+
+// Battery specifications
+const BATTERY_CAPACITY = 4800; // mAh
+const BATTERY_VOLTAGE = 3.7; // V
+const BATTERY_ENERGY_CAPACITY = BATTERY_VOLTAGE * BATTERY_CAPACITY / 1000 * 3600; // Joules
+
 // Track connected clients and ESP8266
 const webClients = new Set();
 let esp8266Client = null;
 let esp8266LastSeen = null;
 
+// Historical data storage - limit to last 24 hours with 5-minute intervals
+const HISTORY_MAX_POINTS = 288; // 24 hours * 12 points per hour (5-minute intervals)
+const historyData = {
+  timestamps: [],
+  voltage: [],
+  energy: [],
+  power: [],
+  passCount: []
+};
+
 // Function to generate random fluctuations for demo data
 function generateDemoData() {
+  const now = Date.now();
+  const timeDelta = (now - powerInsights.lastUpdateTime) / 1000; // seconds
+  
   // Simulate voltage fluctuation between 2.8V and 3.6V
   latestData.voltage = Math.max(2.8, Math.min(3.6, latestData.voltage + (Math.random() - 0.5) * 0.2));
   
@@ -40,7 +72,9 @@ function generateDemoData() {
     latestData.passCount++;
     
     // Bigger energy spike when vehicle passes
-    latestData.energy += 0.0008 + Math.random() * 0.0012;
+    const energyGain = 0.0008 + Math.random() * 0.0012;
+    latestData.energy += energyGain;
+    powerInsights.totalEnergy += energyGain;
   }
   
   // Slowly decrease energy (battery drain simulation)
@@ -49,13 +83,89 @@ function generateDemoData() {
   // Calculate estimated runtime based on energy (arbitrary formula)
   latestData.estimatedRuntime = latestData.energy * 4000;
   
+  // Update power insights
+  powerInsights.avgEnergyPerVehicle = latestData.passCount > 0 ? 
+    powerInsights.totalEnergy / latestData.passCount : 0;
+  
+  powerInsights.peakVoltage = Math.max(powerInsights.peakVoltage, latestData.voltage);
+  
+  // Calculate power: change in energy over time
+  powerInsights.power = timeDelta > 0 ? latestData.energy / timeDelta : 0;
+  
+  // Calculate battery charge percentage
+  powerInsights.batteryChargePercent = Math.min(1, Math.max(0, 
+    powerInsights.totalEnergy / BATTERY_ENERGY_CAPACITY));
+  
+  // Update timestamps for history
+  const currentTime = new Date();
+  powerInsights.timestamps.push(currentTime);
+  powerInsights.voltageHistory.push(latestData.voltage);
+  powerInsights.energyHistory.push(latestData.energy);
+  powerInsights.powerHistory.push(powerInsights.power);
+  
+  // Limit history arrays to last 50 points
+  if (powerInsights.timestamps.length > 50) {
+    powerInsights.timestamps.shift();
+    powerInsights.voltageHistory.shift();
+    powerInsights.energyHistory.shift();
+    powerInsights.powerHistory.shift();
+  }
+  
+  powerInsights.lastUpdateTime = now;
+  
+  // Update historical data (every 5 minutes)
+  updateHistoricalData();
+  
   // Round values to reasonable precision
   latestData.voltage = parseFloat(latestData.voltage.toFixed(2));
   latestData.energy = parseFloat(latestData.energy.toFixed(4));
   latestData.estimatedRuntime = parseFloat(latestData.estimatedRuntime.toFixed(1));
   latestData.mode = 'demo'; // Always mark demo data
   
-  return latestData;
+  // Add power insights to latest data
+  const combinedData = {
+    ...latestData,
+    insights: {
+      totalEnergy: parseFloat(powerInsights.totalEnergy.toFixed(4)),
+      avgEnergyPerVehicle: parseFloat(powerInsights.avgEnergyPerVehicle.toFixed(6)),
+      peakVoltage: parseFloat(powerInsights.peakVoltage.toFixed(2)),
+      power: parseFloat(powerInsights.power.toFixed(6)),
+      batteryChargePercent: parseFloat(powerInsights.batteryChargePercent.toFixed(2)),
+      timeSeriesData: {
+        timestamps: powerInsights.timestamps.map(t => t.toISOString()),
+        voltage: powerInsights.voltageHistory,
+        energy: powerInsights.energyHistory,
+        power: powerInsights.powerHistory
+      }
+    }
+  };
+  
+  return combinedData;
+}
+
+// Update historical data at 5-minute intervals
+function updateHistoricalData() {
+  const now = new Date();
+  
+  // Only update every 5 minutes
+  if (historyData.timestamps.length === 0 || 
+      (now - new Date(historyData.timestamps[historyData.timestamps.length-1])) >= 5*60*1000) {
+    
+    historyData.timestamps.push(now.toISOString());
+    historyData.voltage.push(latestData.voltage);
+    historyData.energy.push(latestData.energy);
+    historyData.power.push(powerInsights.power);
+    historyData.passCount.push(latestData.passCount);
+    
+    // Limit history to HISTORY_MAX_POINTS
+    if (historyData.timestamps.length > HISTORY_MAX_POINTS) {
+      historyData.timestamps.shift();
+      historyData.voltage.shift();
+      historyData.energy.shift();
+      historyData.power.shift();
+      historyData.passCount.shift();
+    }
+  }
 }
 
 // Broadcast status update to all web clients
@@ -86,6 +196,12 @@ wss.on('connection', (ws, req) => {
     esp8266Client = ws;
     esp8266LastSeen = new Date();
     
+    // Reset energy when ESP8266 first connects
+    if (latestData.mode !== 'live') {
+      powerInsights.totalEnergy = 0;
+      latestData.energy = 0;
+    }
+    
     // Mark as live mode when ESP8266 connects
     latestData.mode = 'live';
     
@@ -96,7 +212,31 @@ wss.on('connection', (ws, req) => {
     webClients.add(ws);
     
     // Send current data and status to newly connected web client
-    ws.send(JSON.stringify({ type: 'data', data: latestData }));
+    const dataToSend = latestData.mode === 'demo' ? generateDemoData() : 
+      {
+        ...latestData,
+        insights: {
+          totalEnergy: parseFloat(powerInsights.totalEnergy.toFixed(4)),
+          avgEnergyPerVehicle: parseFloat(powerInsights.avgEnergyPerVehicle.toFixed(6)),
+          peakVoltage: parseFloat(powerInsights.peakVoltage.toFixed(2)),
+          power: parseFloat(powerInsights.power.toFixed(6)),
+          batteryChargePercent: parseFloat(powerInsights.batteryChargePercent.toFixed(2)),
+          timeSeriesData: {
+            timestamps: powerInsights.timestamps.map(t => t.toISOString()),
+            voltage: powerInsights.voltageHistory,
+            energy: powerInsights.energyHistory,
+            power: powerInsights.powerHistory
+          }
+        }
+      };
+    
+    ws.send(JSON.stringify({ type: 'data', data: dataToSend }));
+    
+    // Send historical data
+    ws.send(JSON.stringify({
+      type: 'history',
+      data: historyData
+    }));
     
     // Send current status
     const statusMessage = JSON.stringify({
@@ -120,13 +260,78 @@ wss.on('connection', (ws, req) => {
             parsedMessage.estimatedRuntime !== undefined) {
           
           esp8266LastSeen = new Date();
-          parsedMessage.mode = 'live';
-          latestData = parsedMessage;
+          
+          // Capture previous values for calculations
+          const prevPassCount = latestData.passCount || 0;
+          const prevEnergy = latestData.energy || 0;
+          const now = Date.now();
+          const timeDelta = (now - powerInsights.lastUpdateTime) / 1000; // seconds
+          
+          // Update latest data
+          latestData = {
+            ...parsedMessage,
+            mode: 'live'
+          };
+          
+          // Calculate energy gain and update total
+          const energyGain = Math.max(0, latestData.energy - prevEnergy);
+          powerInsights.totalEnergy += energyGain;
+          
+          // Update power insights
+          powerInsights.avgEnergyPerVehicle = latestData.passCount > 0 ? 
+            powerInsights.totalEnergy / latestData.passCount : 0;
+          
+          powerInsights.peakVoltage = Math.max(powerInsights.peakVoltage, latestData.voltage);
+          
+          // Calculate power: change in energy over time
+          powerInsights.power = timeDelta > 0 ? energyGain / timeDelta : 0;
+          
+          // Calculate battery charge percentage
+          powerInsights.batteryChargePercent = Math.min(1, Math.max(0, 
+            powerInsights.totalEnergy / BATTERY_ENERGY_CAPACITY));
+          
+          // Update timestamps for history
+          const currentTime = new Date();
+          powerInsights.timestamps.push(currentTime);
+          powerInsights.voltageHistory.push(latestData.voltage);
+          powerInsights.energyHistory.push(latestData.energy);
+          powerInsights.powerHistory.push(powerInsights.power);
+          
+          // Limit history arrays to last 50 points
+          if (powerInsights.timestamps.length > 50) {
+            powerInsights.timestamps.shift();
+            powerInsights.voltageHistory.shift();
+            powerInsights.energyHistory.shift();
+            powerInsights.powerHistory.shift();
+          }
+          
+          powerInsights.lastUpdateTime = now;
+          
+          // Update historical data (every 5 minutes)
+          updateHistoricalData();
           
           console.log('Received data from ESP8266:', latestData);
           
+          // Add power insights to data before broadcasting
+          const dataToSend = {
+            ...latestData,
+            insights: {
+              totalEnergy: parseFloat(powerInsights.totalEnergy.toFixed(4)),
+              avgEnergyPerVehicle: parseFloat(powerInsights.avgEnergyPerVehicle.toFixed(6)),
+              peakVoltage: parseFloat(powerInsights.peakVoltage.toFixed(2)),
+              power: parseFloat(powerInsights.power.toFixed(6)),
+              batteryChargePercent: parseFloat(powerInsights.batteryChargePercent.toFixed(2)),
+              timeSeriesData: {
+                timestamps: powerInsights.timestamps.map(t => t.toISOString()),
+                voltage: powerInsights.voltageHistory,
+                energy: powerInsights.energyHistory,
+                power: powerInsights.powerHistory
+              }
+            }
+          };
+          
           // Broadcast to all web clients
-          broadcastData();
+          broadcastData(dataToSend);
         }
       } else {
         // Handle web client messages
@@ -142,6 +347,19 @@ wss.on('connection', (ws, req) => {
                 energy: 0,
                 estimatedRuntime: 0,
                 mode: 'live'
+              };
+              
+              powerInsights = {
+                totalEnergy: 0,
+                avgEnergyPerVehicle: 0,
+                peakVoltage: 0,
+                power: 0,
+                batteryChargePercent: 0,
+                lastUpdateTime: Date.now(),
+                timestamps: [],
+                voltageHistory: [],
+                energyHistory: [],
+                powerHistory: []
               };
             } else {
               latestData.mode = 'live';
@@ -159,8 +377,30 @@ wss.on('connection', (ws, req) => {
           
           // If switching to live mode and no ESP8266, send reset data
           if (parsedMessage.mode === 'live' && (!esp8266Client || esp8266Client.readyState !== WebSocket.OPEN)) {
-            ws.send(JSON.stringify({ type: 'data', data: latestData }));
+            const dataToSend = {
+              ...latestData,
+              insights: {
+                totalEnergy: parseFloat(powerInsights.totalEnergy.toFixed(4)),
+                avgEnergyPerVehicle: parseFloat(powerInsights.avgEnergyPerVehicle.toFixed(6)),
+                peakVoltage: parseFloat(powerInsights.peakVoltage.toFixed(2)),
+                power: parseFloat(powerInsights.power.toFixed(6)),
+                batteryChargePercent: parseFloat(powerInsights.batteryChargePercent.toFixed(2)),
+                timeSeriesData: {
+                  timestamps: powerInsights.timestamps.map(t => t.toISOString()),
+                  voltage: powerInsights.voltageHistory,
+                  energy: powerInsights.energyHistory,
+                  power: powerInsights.powerHistory
+                }
+              }
+            };
+            ws.send(JSON.stringify({ type: 'data', data: dataToSend }));
           }
+        } else if (parsedMessage.type === 'getHistory') {
+          // Client requested historical data
+          ws.send(JSON.stringify({
+            type: 'history',
+            data: historyData
+          }));
         }
       }
     } catch (e) {
@@ -196,11 +436,11 @@ wss.on('connection', (ws, req) => {
 });
 
 // Broadcast data to all connected web clients
-function broadcastData() {
-  const data = JSON.stringify({ type: 'data', data: latestData });
+function broadcastData(data) {
+  const message = JSON.stringify({ type: 'data', data: data });
   webClients.forEach(client => {
     if (client.readyState === WebSocket.OPEN) {
-      client.send(data);
+      client.send(message);
     }
   });
 }
@@ -217,8 +457,8 @@ function startDemoMode() {
   demoInterval = setInterval(() => {
     // Only send demo data if we're in demo mode
     if (latestData.mode === 'demo') {
-      generateDemoData();
-      broadcastData();
+      const demoData = generateDemoData();
+      broadcastData(demoData);
     }
   }, 2000);
   

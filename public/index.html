@@ -6,9 +6,7 @@
     <title>Piezoelectric Road Energy Monitor</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <!-- React and React DOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
 </head>
 <body>
     <header>
@@ -56,7 +54,7 @@
                     <!-- Icon will be inserted by JS -->
                 </div>
                 <div class="widget-content">
-                    <h2>Energy</h2>
+                    <h2>Total Energy</h2>
                     <div class="widget-value" id="energy-value">0</div>
                     <div class="widget-unit">Joules</div>
                 </div>
@@ -72,8 +70,53 @@
                     <div class="widget-unit">seconds</div>
                 </div>
             </div>
+
+            <div class="widget">
+                <div class="widget-icon" id="power-icon">
+                    ⚡
+                </div>
+                <div class="widget-content">
+                    <h2>Power Output</h2>
+                    <div class="widget-value" id="power-value">0</div>
+                    <div class="widget-unit">Watts</div>
+                </div>
+            </div>
+
+            <div class="widget">
+                <div class="widget-icon" id="battery-icon">
+                    🔋
+                </div>
+                <div class="widget-content">
+                    <h2>Battery Charge</h2>
+                    <div class="widget-value" id="battery-value">0</div>
+                    <div class="widget-unit">%</div>
+                </div>
+                <div class="battery-visual-container">
+                    <div class="battery-visual">
+                        <div id="battery-level" class="battery-level" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
         </div>
         
+        <div class="insights-section">
+            <h2>Power Insights</h2>
+            <div class="insight-cards">
+                <div class="insight-card">
+                    <h3>Peak Voltage</h3>
+                    <div class="insight-value" id="peak-voltage">0 V</div>
+                </div>
+                <div class="insight-card">
+                    <h3>Avg Energy per Vehicle</h3>
+                    <div class="insight-value" id="avg-energy">0 J</div>
+                </div>
+                <div class="insight-card">
+                    <h3>Estimated Range</h3>
+                    <div class="insight-value" id="led-range">0 hrs</div>
+                </div>
+            </div>
+        </div>
+
         <div class="chart-container">
             <div class="chart-header">
                 <h2>Voltage History</h2>
@@ -83,10 +126,47 @@
                         <option value="1">1 minute</option>
                         <option value="5">5 minutes</option>
                         <option value="15">15 minutes</option>
+                        <option value="60">1 hour</option>
+                        <option value="360">6 hours</option>
+                        <option value="1440">24 hours</option>
                     </select>
                 </div>
             </div>
             <canvas id="voltage-chart"></canvas>
+        </div>
+
+        <div class="chart-container">
+            <div class="chart-header">
+                <h2>Energy & Power</h2>
+                <div class="chart-controls">
+                    <button id="energy-chart-type" class="toggle-btn active" data-type="energy">Energy</button>
+                    <button id="power-chart-type" class="toggle-btn" data-type="power">Power</button>
+                </div>
+            </div>
+            <canvas id="energy-power-chart"></canvas>
+        </div>
+
+        <div class="analysis-section">
+            <h2>Traffic Analysis</h2>
+            <div class="analysis-content">
+                <div class="analysis-stats">
+                    <div class="stat-item">
+                        <h3>Peak Traffic Time</h3>
+                        <p id="peak-traffic-time">--:--</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Traffic Density</h3>
+                        <p id="traffic-density">Low</p>
+                    </div>
+                    <div class="stat-item">
+                        <h3>Energy Efficiency</h3>
+                        <p id="energy-efficiency">Normal</p>
+                    </div>
+                </div>
+                <div class="traffic-chart-container">
+                    <canvas id="traffic-chart"></canvas>
+                </div>
+            </div>
         </div>
     </main>
 

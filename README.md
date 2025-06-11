@@ -1,128 +1,102 @@
-# Vehicle-Based Piezoelectric Power Generation System
+# Piezoelectric Road Power Simulator with ESP8266 + Node.js
 
-An IoT-based prototype demonstrating sustainable energy harvesting from vehicular traffic using piezoelectric technology, monitored through ESP8266 and a real-time Node.js dashboard.
+A full-stack simulation system for piezoelectric road energy harvesting that demonstrates how energy can be captured from vehicle passes and converted into usable electrical power. This project combines hardware components with real-time data visualization to provide insights into renewable energy generation from roadway vibrations.
 
-## Project Overview
+![Piezoelectric Energy Harvesting System](https://via.placeholder.com/800x400?text=Piezoelectric+Road+Power+Simulator)
 
-This project explores the concept of harvesting kinetic energy from vehicles using piezoelectric discs embedded in road surfaces. The harvested energy is processed, stored, and monitored in real-time through a web-based dashboard, demonstrating the potential for **road-powered street lighting** and other infrastructure applications.
+## 📋 Overview
 
-### Motivation
-With increasing focus on renewable energy and smart city infrastructure, this prototype showcases how everyday vehicular traffic can be converted into usable electrical energy, contributing to sustainable urban development and reducing grid dependency for road lighting systems.
+The Piezoelectric Road Power Simulator demonstrates energy harvesting from road vibrations using piezoelectric transducers. As vehicles pass over the piezoelectric elements, mechanical stress is converted into electrical energy, which is then captured, measured, and visualized in real-time on a dashboard.
 
-## System Architecture
+### Key Features
 
-The system integrates hardware energy harvesting with IoT monitoring capabilities:
+- **Energy Harvesting Simulation**: Uses piezoelectric discs to convert mechanical pressure into electrical energy
+- **Real-time Monitoring**: Displays voltage, energy, and power metrics on a responsive dashboard
+- **Vehicle Detection**: Counts vehicle passes and correlates with energy generation
+- **Energy Analysis**: Calculates potential runtime for LEDs or other low-power devices
+- **Power Insights**: Shows historical data and energy generation patterns
+- **Dual Operation Modes**: Live data from hardware or demo mode with simulated data
 
-```mermaid
-flowchart TD
-    A[Vehicle Weight/Pressure] --> B[10x Piezoelectric Discs]
-    B --> C[DB107 Bridge Rectifier]
-    C --> D[470µF Capacitor Bank]
-    D --> E[MT3608 Boost Converter]
-    E --> F[5V Rechargeable Battery]
-    F --> G[ESP8266 NodeMCU]
-    G --> H[Wi-Fi Network]
-    H --> I[Node.js WebSocket Server]
-    I --> J[Real-time Web Dashboard]
-    
-    K[Tactile Switch] --> G
-    G --> L[LED Array Demo]
-    
-    style A fill:#ff6b6b
-    style B fill:#4ecdc4
-    style G fill:#45b7d1
-    style I fill:#96ceb4
-    style J fill:#ffeaa7
+## 📦 Project Structure
+
+```
+/piezoelectric
+├── /arduino           → ESP8266 firmware (piezo_harvester.ino and esp8266.ino)
+├── /public            → Frontend dashboard (HTML, CSS, JS)
+│   ├── index.html     → Main dashboard page
+│   ├── style.css      → Dashboard styling
+│   └── script.js      → Client-side WebSocket and visualization logic
+├── server.js          → Node.js WebSocket server for data handling
+├── package.json       → Node.js dependencies
+├── ESP8266_SETUP.md   → Hardware setup instructions
+└── README.md          → Project documentation
 ```
 
-**Component Flow:**
-- **Energy Generation:** Piezo discs → Rectifier → Capacitor → Booster → Battery
-- **Monitoring:** ESP8266 → Wi-Fi → Node.js Server → Web Dashboard
-- **Output Demo:** Battery → LEDs (simulating street lighting)
+## 🛠️ Hardware Requirements
 
-## Hardware Components
+- ESP8266 NodeMCU or Wemos D1 Mini
+- 9× Piezoelectric disc transducers (1 for detection, 8 for power generation)
+- Rectifier circuit (bridge rectifier or diodes)
+- 470µF capacitor for energy storage
+- Voltage divider for analog readings (100kΩ/47kΩ)
+- Tactile switch for simulating vehicle passes
+- Status LEDs for visual indication
+- Breadboard and jumper wires
+- Micro USB cable for programming and power
 
-| Component | Specification | Quantity | Purpose |
-|-----------|---------------|----------|---------|
-| **Piezoelectric Discs** | 27mm diameter | 10x | Primary energy harvesting elements |
-| **Bridge Rectifier** | DB107 | 1x | AC to DC conversion |
-| **Capacitor** | 470µF, 25V | 1x | Energy storage and smoothing |
-| **Boost Converter** | MT3608 (2A) | 1x | Voltage regulation (3.3V → 5V) |
-| **Battery** | 5V Rechargeable Li-ion | 1x | Energy storage buffer |
-| **Microcontroller** | ESP8266 (NodeMCU/Wemos D1) | 1x | IoT connectivity and monitoring |
-| **Switch** | Tactile Push Button | 1x | Manual vehicle pass simulation |
-| **LEDs** | Standard 5mm | 5-10x | Power output demonstration |
-| **Resistors** | 220Ω, 10kΩ | Various | Current limiting and pull-up |
+## 🧰 Software Requirements
 
-### Circuit Connections
-- **Piezo Array** → DB107 (AC input pins)
-- **DB107 Output** → 470µF Capacitor → MT3608 Input
-- **MT3608 Output** → Battery + ESP8266 VIN
-- **ESP8266 GPIO** → Voltage divider → Analog monitoring
-- **Tactile Switch** → ESP8266 GPIO (with pull-up resistor)
+- Node.js (v14.0.0 or higher)
+- npm or yarn package manager
+- Arduino IDE (for ESP8266 firmware)
+- Required Arduino libraries:
+  - ESP8266WiFi
+  - WebSocketsClient
+  - ArduinoJson
 
-## Software Components
+## 🌟 Getting Started
 
-### Arduino Firmware (ESP8266)
-- **Wi-Fi connectivity** with auto-reconnection
-- **Analog voltage monitoring** via ADC
-- **WebSocket client** for real-time data transmission
-- **Vehicle pass detection** through tactile switch interrupt
-- **Energy calculation** algorithms
-
-### Node.js Backend
-- **Express.js** HTTP server for dashboard hosting
-- **WebSocket server** (`ws` library) for real-time communication
-- **CORS enabled** for cross-origin requests
-- **Static file serving** for frontend assets
-
-### Frontend Dashboard
-- **Responsive HTML5/CSS3** with mobile-first design
-- **WebSocket client** for live data updates
-- **Chart.js integration** for voltage history visualization
-- **Dark theme** with green/yellow accent colors
-- **Real-time metrics display**
-
-## Installation Guide
+Follow these steps to set up and run the Piezoelectric Road Power Simulator:
 
 ### Step 1: Hardware Assembly
-1. **Wire piezoelectric discs** in parallel configuration
-2. **Connect rectifier circuit:** Piezo → DB107 → Capacitor
-3. **Setup boost converter:** Capacitor → MT3608 → Battery
-4. **Connect ESP8266:** Battery → NodeMCU power pins
-5. **Add monitoring circuit:** Voltage divider → ESP8266 A0 pin
-6. **Install tactile switch** with pull-up resistor to GPIO pin
+See the detailed instructions in [ESP8266_SETUP.md](ESP8266_SETUP.md) for:
+- Piezoelectric array construction
+- Rectifier circuit wiring
+- Energy storage configuration
+- ESP8266 connections
+- Testing procedures
 
-### Step 2: Arduino Firmware
-1. Install **ESP8266 Arduino Core** in Arduino IDE
-2. Install required libraries:
+### Step 2: ESP8266 Firmware
+1. **Open Arduino IDE** and load `arduino/piezo_harvester.ino`
+2. **Update WiFi credentials**:
+   ```cpp
+   const char* ssid = "YOUR_WIFI_SSID";
+   const char* password = "YOUR_WIFI_PASSWORD";
    ```
-   - ESP8266WiFi
-   - WebSocketsClient
-   - ArduinoJson
+3. **Set WebSocket server address**:
+   ```cpp
+   const char* wsHost = "YOUR_SERVER_IP";
+   const int wsPort = 3000;
    ```
-3. **Configure Wi-Fi credentials** in the Arduino sketch
-4. **Set WebSocket server IP** (your computer's local IP)
-5. **Flash firmware** to ESP8266
+4. **Upload firmware** to ESP8266
 
-### Step 3: Node.js Server Setup
-1. **Clone/download** the project repository
-2. **Install dependencies:**
+### Step 3: Server Setup
+1. **Install dependencies**:
    ```bash
-   npm install express ws cors
+   npm install
    ```
-3. **Start the server:**
+2. **Start the server**:
    ```bash
    npm start
    ```
-4. **Verify server** is running on `http://localhost:3000`
+3. **Verify server** is running on `http://localhost:3000`
 
 ### Step 4: Access Dashboard
 1. **Open web browser** and navigate to `http://localhost:3000`
 2. **Verify WebSocket connection** (green status indicator)
 3. **Test data flow** by pressing the tactile switch
 
-## Usage
+## 📊 Usage
 
 ### Initial Setup
 1. **Power on** the ESP8266 system
@@ -132,128 +106,73 @@ flowchart TD
 
 ### Simulating Vehicle Passes
 - **Manual simulation:** Press tactile switch to increment pass counter
-- **Roller method:** Use a weighted roller over piezo disc array
-- **Pressure application:** Apply consistent pressure to generate voltage
+- **Physical simulation:** Apply pressure to the main piezoelectric disc
 
-### Dashboard Monitoring
-- **Real-time voltage** readings from piezo array
-- **Vehicle pass counter** with running total
-- **Energy harvested** calculations in millijoules
-- **LED runtime estimation** based on current energy storage
-- **Historical voltage graph** with 50-point rolling window
+### Dashboard Features
+- **Real-time monitoring** of voltage, energy, and power
+- **Vehicle pass counter** tracking
+- **Energy harvesting metrics** including total energy in joules
+- **LED runtime estimation** based on harvested energy
+- **Historical data visualization** with adjustable time ranges
+- **Power insights** showing peak voltage and average energy per vehicle
 
-## Data Flow
+### Operation Modes
+- **Live Mode**: Connects to ESP8266 hardware for real data
+- **Demo Mode**: Simulates piezoelectric data for demonstration purposes
 
-```mermaid
-sequenceDiagram
-    participant P as Piezo Discs
-    participant E as ESP8266
-    participant S as Node.js Server
-    participant D as Web Dashboard
-    participant U as User Browser
-    
-    P->>E: Generate voltage signal
-    E->>E: Read ADC value
-    E->>E: Calculate energy metrics
-    E->>S: WebSocket JSON data
-    S->>D: Broadcast to all clients
-    D->>U: Update real-time UI
-    U->>D: View live metrics
-    
-    Note over E,S: Data packet every 1 second
-    Note over S,D: WebSocket connection maintained
-    Note over P,E: Voltage range: 0-5V
+## 🔋 Power Metrics
+
+The system calculates several key metrics:
+
+- **Voltage**: Direct reading from piezoelectric array (V)
+- **Energy**: Calculated using capacitor formula E = 0.5 × C × V² (J)
+- **Power**: Rate of energy generation (W)
+- **Runtime**: Estimated operating time for a load (e.g., LED) based on harvested energy
+- **Battery Charge**: Equivalent battery percentage based on energy harvested
+
+## 🧪 Technical Details
+
+### Energy Calculation
+The system uses the following formula to calculate energy:
+```
+E = 0.5 × C × V²
+```
+Where:
+- E = Energy in joules (J)
+- C = Capacitance in farads (F)
+- V = Voltage in volts (V)
+
+### Runtime Estimation
+LED runtime is calculated as:
+```
+Runtime (seconds) = Energy (J) / Power consumption (W)
 ```
 
-### Data Packet Format
-```json
-{
-  "voltage": 3.2,
-  "passCount": 24,
-  "energy": 0.0123,
-  "estimatedRuntime": 45.6,
-  "timestamp": 1640995200000
-}
-```
+### Wireless Communication
+- **Protocol**: WebSocket for real-time bidirectional communication
+- **Data format**: JSON messages containing sensor readings and system status
+- **Update frequency**: 2 seconds (configurable)
 
-## Live Dashboard Features
+## 🔄 Project Extensions
 
-### Real-time Metrics
-- **Voltage Display:** Current piezoelectric output (0-5V range)
-- **Pass Counter:** Total vehicle simulations detected
-- **Energy Harvested:** Cumulative energy in millijoules
-- **LED Runtime:** Estimated lighting duration in minutes
+Potential ways to extend the project:
+- Add solar panel integration for hybrid energy harvesting
+- Implement energy efficient deep sleep modes
+- Add data logging to SD card or cloud database
+- Create mobile companion app using React Native
+- Implement machine learning for traffic pattern analysis
+- Scale up with multiple sensor nodes along a roadway
 
-### Visual Interface
-- **Dark theme** with green (#4ecdc4) and yellow (#ffeaa7) accents
-- **Responsive grid layout** adapting to mobile devices
-- **Chart.js line graph** showing voltage history over time
-- **Connection status indicator** with auto-reconnection
-- **Smooth animations** and hover effects
+## 📜 License
 
-### Mobile Optimization
-- **Touch-friendly interface** for tablet/phone access
-- **Flexible grid system** adjusting to screen size
-- **Readable typography** with appropriate contrast ratios
+This project is licensed under the MIT License - see the LICENSE file for details.
 
-## Future Improvements
+## 🙏 Acknowledgments
 
-### Power Optimization
-- **Deep sleep mode** implementation for ESP8266
-- **Wake-on-interrupt** for vehicle detection
-- **Solar panel integration** for system charging
+- Special thanks to contributors and testers
+- Inspired by sustainable energy research
+- Built with open source technologies
 
-### Enhanced Connectivity
-- **ESP32 upgrade** with Bluetooth + Wi-Fi dual mode
-- **LoRaWAN integration** for long-range communication
-- **Edge computing** capabilities with local data processing
+## 📞 Contact
 
-### Real-world Deployment
-- **Multiple piezo strip arrays** across road width
-- **Weather-resistant enclosures** for outdoor installation
-- **Advanced energy storage** with supercapacitor banks
-- **Grid-tie inverter** integration for utility connection
-
-### Software Enhancements
-- **Historical data logging** with database integration
-- **Machine learning** traffic pattern analysis
-- **Mobile app development** for remote monitoring
-- **Cloud dashboard** with multi-location support
-
-## Technologies Used
-
-### Backend
-- **Node.js** - JavaScript runtime environment
-- **Express.js** - Web application framework
-- **WebSocket (ws)** - Real-time bidirectional communication
-- **CORS** - Cross-origin resource sharing
-
-### Frontend
-- **HTML5** - Modern markup with semantic elements
-- **CSS3** - Responsive design with CSS Grid and Flexbox
-- **Vanilla JavaScript** - WebSocket client and DOM manipulation
-- **Chart.js** - Interactive data visualization library
-
-### Hardware
-- **ESP8266** - Wi-Fi enabled microcontroller
-- **Arduino IDE** - Firmware development environment
-- **Piezoelectric Technology** - Mechanical to electrical energy conversion
-
-## License & Credits
-
-### License
-This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
-
-
-### Contributing
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-### Acknowledgments
-- Piezoelectric energy harvesting research community
-- ESP8266 Arduino Core contributors
-- Chart.js development team
-- Open source IoT community
-
----
-
-**⚡ Powering the future, one vehicle at a time! ⚡**
+For questions or feedback, please open an issue on this repository.
