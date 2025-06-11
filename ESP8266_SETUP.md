@@ -8,7 +8,7 @@ This guide provides detailed instructions for setting up the ESP8266-based piezo
 - ESP8266 NodeMCU or Wemos D1 Mini
 - 10× Piezoelectric disc transducers (27mm diameter)
 - DB107 Bridge Rectifier (or 4× 1N4007 diodes)
-- 470µF capacitor (25V or higher rating)
+- 2× 3400μF capacitors (25V or higher rating) for parallel configuration
 - MT3608 DC-DC Boost Converter module
 - 5V 18650 battery shield (with charging circuit)
 - 18650 Li-ion battery (recommended: 3.7V, 4800mAh)
@@ -44,23 +44,26 @@ This guide provides detailed instructions for setting up the ESP8266-based piezo
 +----------+     +----+---+          +---+---+
                       |                  |
                       |                  |
-                 +----+------+      +----+----+
-                 |           |      |         |
-                 | Capacitor |      | 18650   |
-                 | 470µF/25V |      | Battery |
-                 |           |      |         |
-                 +----+------+      +----+----+
-                      |                  |
-                      |                  |
-                 +----+------+           |
-                 |           |           |
-                 |  MT3608   |           |
-                 |  Boost    |           |
-                 | Converter |           |
-                 |           |           |
-                 +----+------+           |
-                      |                  |
-                      +-------+----------+
+              +-------+-------+          |
+              |               |          |
+        +-----+-----+   +-----+-----+   |
+        |  3400μF   |   |  3400μF   |   |
+        | Capacitor |   | Capacitor |   |
+        |           |   |           |   |
+        +-----+-----+   +-----+-----+   |
+              |               |         |
+              +-------+-------+         |
+                      |                 |
+                      |                 |
+                 +----+------+          |
+                 |           |          |
+                 |  MT3608   |          |
+                 |  Boost    |          |
+                 | Converter |          |
+                 |           |          |
+                 +----+------+          |
+                      |                 |
+                      +-----------------+
                               |
                               |
                          +----+----+
@@ -98,12 +101,14 @@ This guide provides detailed instructions for setting up the ESP8266-based piezo
 
 ### Step 2: Energy Storage Circuit
 
-1. Connect the capacitor:
-   - Positive terminal to rectifier's DC+ output
-   - Negative terminal to ground
+1. Connect the dual capacitor configuration:
+   - Connect both 3400μF capacitors in parallel (positive to positive, negative to negative)
+   - Connect positive terminals to rectifier's DC+ output
+   - Connect negative terminals to ground
+   - This provides a total capacitance of 6800μF for improved energy storage
 
 2. Connect boost converter:
-   - Input terminals to capacitor (observe polarity)
+   - Input terminals to capacitor bank (observe polarity)
    - Adjust output to 5V using trim potentiometer
    - Measure with multimeter to confirm 5V output
 
@@ -119,7 +124,7 @@ This guide provides detailed instructions for setting up the ESP8266-based piezo
 
 2. Voltage monitoring:
    - Create voltage divider with 100kΩ and 47kΩ resistors
-   - Connect divider input to capacitor
+   - Connect divider input to capacitor bank
    - Connect divider output to ESP8266 A0 pin
 
 3. Vehicle detection switch:
@@ -163,7 +168,12 @@ This guide provides detailed instructions for setting up the ESP8266-based piezo
    const int wsPort = 3000;
    ```
 
-4. Configure hardware pins if your connections differ:
+4. Update the capacitance value to match our new configuration:
+   ```cpp
+   const float CAPACITOR_VALUE = 6800e-6; // 6800µF (2x3400µF in parallel) in Farads
+   ```
+
+5. Configure hardware pins if your connections differ:
    ```cpp
    const int PIEZO_ADC_PIN = A0;
    const int VEHICLE_DETECT_PIN = D2;
@@ -171,12 +181,12 @@ This guide provides detailed instructions for setting up the ESP8266-based piezo
    const int STATUS_LED_PIN = LED_BUILTIN;
    ```
 
-5. Adjust voltage divider ratio if needed:
+6. Adjust voltage divider ratio if needed:
    ```cpp
    const float VOLTAGE_DIVIDER_RATIO = 3.0; // (R1+R2)/R2
    ```
 
-6. Upload firmware:
+7. Upload firmware:
    - Select correct board (NodeMCU 1.0 or Wemos D1 Mini)
    - Select correct port
    - Click Upload
@@ -194,11 +204,17 @@ This guide provides detailed instructions for setting up the ESP8266-based piezo
 2. Press the tactile button to simulate vehicle passes
 3. Verify counter increments and LED status changes
 
+### Capacitor Testing
+1. Verify that both capacitors are charging properly
+2. Measure voltage across capacitor bank
+3. Confirm that combined capacitance provides adequate energy storage
+4. Test discharge time to evaluate overall system efficiency
+
 ### System Calibration
-1. Measure actual voltage with multimeter at capacitor
+1. Measure actual voltage with multimeter at capacitor bank
 2. Compare with reading shown in Serial Monitor
 3. Adjust `VOLTAGE_DIVIDER_RATIO` if needed
-4. Measure time to charge capacitor from empty
+4. Measure time to charge capacitor bank from empty
 5. Record peak voltage achieved when tapping discs
 
 ## Installation Tips
@@ -220,6 +236,7 @@ This guide provides detailed instructions for setting up the ESP8266-based piezo
 - **WiFi connection issues**: Check signal strength, try external antenna
 - **Battery not charging**: Verify boost converter output is stable at 5V
 - **Data transmission failures**: Check WebSocket server address and port
+- **Capacitor issues**: Verify polarity, check for leakage, confirm ESR is low
 
 ## Energy Efficiency Considerations
 

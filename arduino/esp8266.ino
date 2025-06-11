@@ -17,7 +17,7 @@ const int INTERRUPT_PIN = D2;
 const int LED_PIN = LED_BUILTIN;
 
 // Constants
-const float CAPACITOR_VALUE = 470e-6; // 470µF in Farads
+const float CAPACITOR_VALUE = 6800e-6; // 6800μF (2× 3400μF in parallel) in Farads
 const float LED_POWER = 0.12; // 120mW total power consumption
 const float VOLTAGE_DIVIDER_RATIO = 2.0; // Adjust based on your voltage divider
 const unsigned long SEND_INTERVAL = 2000; // 2 seconds
@@ -35,6 +35,7 @@ WebSocketsClient webSocket;
 void setup() {
   Serial.begin(115200);
   Serial.println("\nESP8266 Piezoelectric Monitor Starting...");
+  Serial.println("Using dual 3400μF capacitors in parallel (6800μF total)");
   
   // Initialize pins
   pinMode(INTERRUPT_PIN, INPUT_PULLUP);
@@ -115,6 +116,7 @@ void readVoltage() {
 
 void calculateEnergy() {
   // E = 0.5 * C * V^2
+  // Using the combined capacitance of two 3400μF capacitors in parallel
   energy = 0.5 * CAPACITOR_VALUE * voltage * voltage;
 }
 

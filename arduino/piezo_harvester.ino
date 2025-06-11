@@ -30,7 +30,7 @@ const int STATUS_LED_PIN = LED_BUILTIN; // Built-in LED for status indication
 const float VOLTAGE_REF = 3.3;        // ADC reference voltage
 const float ADC_RESOLUTION = 1024.0;  // ESP8266 has 10-bit ADC (0-1023)
 const float VOLTAGE_DIVIDER_RATIO = 3.0; // Voltage divider ratio (R1+R2)/R2
-const float CAPACITOR_VALUE = 470e-6; // Storage capacitor in farads (470µF)
+const float CAPACITOR_VALUE = 6800e-6; // Total capacitance: 2× 3400μF in parallel = 6800μF
 const float LED_POWER_CONSUMPTION = 0.15; // LED power in watts (150mW)
 
 // Vehicle detection constants
@@ -91,6 +91,7 @@ void setup() {
   Serial.begin(115200);
   Serial.println("\n\nPiezoelectric Energy Harvesting Monitor");
   Serial.println("======================================");
+  Serial.println("Using dual 3400μF capacitors in parallel (6800μF total)");
 
   // Initialize pins
   pinMode(PIEZO_ADC_PIN, INPUT);

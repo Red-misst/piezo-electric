@@ -32,12 +32,78 @@ The Piezoelectric Road Power Simulator demonstrates energy harvesting from road 
 └── README.md          → Project documentation
 ```
 
+## 🔄 System Architecture and Data Flow
+
+### System Components Diagram
+
+```mermaid
+flowchart TB
+    subgraph "Hardware Layer"
+        PZ[Piezoelectric Array]
+        RECT[Rectifier Circuit]
+        CAP[2x 3400μF Capacitors]
+        BOOST[DC-DC Boost Converter]
+        ESP[ESP8266 Microcontroller]
+    end
+    
+    subgraph "Server Layer"
+        NODE[Node.js Server]
+        WSSERVER[WebSocket Server]
+        DATAPROC[Data Processing]
+    end
+    
+    subgraph "Client Layer"
+        DASH[Web Dashboard]
+        CHART[Real-time Charts]
+        STATS[Power Statistics]
+    end
+    
+    PZ --> RECT
+    RECT --> CAP
+    CAP --> BOOST
+    CAP --> ESP
+    BOOST --> ESP
+    ESP --> |WebSocket| WSSERVER
+    WSSERVER --> NODE
+    NODE --> DATAPROC
+    DATAPROC --> WSSERVER
+    WSSERVER --> |WebSocket| DASH
+    DASH --> CHART
+    DASH --> STATS
+```
+
+### Data Flow Sequence
+
+```mermaid
+sequenceDiagram
+    participant Piezo as Piezoelectric Sensors
+    participant ESP8266 as ESP8266
+    participant Server as Node.js Server
+    participant Client as Web Dashboard
+    
+    Note over Piezo,Client: Vehicle Pass Event
+    Piezo->>ESP8266: Generate voltage spike
+    ESP8266->>ESP8266: Process voltage reading
+    ESP8266->>ESP8266: Calculate energy (E=0.5CV²)
+    ESP8266->>Server: Send data via WebSocket
+    Server->>Server: Process & store data
+    Server->>Client: Broadcast data update
+    Client->>Client: Update visualization
+    Client->>Client: Calculate metrics
+    
+    Note over Client: User Interaction
+    Client->>Server: Request mode change
+    Server->>Server: Switch mode
+    Server->>ESP8266: Send command (if needed)
+    Server->>Client: Confirm mode change
+```
+
 ## 🛠️ Hardware Requirements
 
 - ESP8266 NodeMCU or Wemos D1 Mini
 - 9× Piezoelectric disc transducers (1 for detection, 8 for power generation)
 - Rectifier circuit (bridge rectifier or diodes)
-- 470µF capacitor for energy storage
+- **2× 3400μF capacitors** (connected in parallel for energy storage)
 - Voltage divider for analog readings (100kΩ/47kΩ)
 - Tactile switch for simulating vehicle passes
 - Status LEDs for visual indication
@@ -52,7 +118,8 @@ The Piezoelectric Road Power Simulator demonstrates energy harvesting from road 
 - Required Arduino libraries:
   - ESP8266WiFi
   - WebSocketsClient
-  - ArduinoJson
+  - ArduinoJson (version 6.x)
+  - EEPROM
 
 ## 🌟 Getting Started
 
@@ -62,7 +129,7 @@ Follow these steps to set up and run the Piezoelectric Road Power Simulator:
 See the detailed instructions in [ESP8266_SETUP.md](ESP8266_SETUP.md) for:
 - Piezoelectric array construction
 - Rectifier circuit wiring
-- Energy storage configuration
+- Energy storage configuration using dual 3400μF capacitors
 - ESP8266 connections
 - Testing procedures
 
@@ -132,6 +199,17 @@ The system calculates several key metrics:
 
 ## 🧪 Technical Details
 
+### Energy Storage Configuration
+The system uses two 3400μF capacitors in parallel:
+```
+Total Capacitance = C₁ + C₂ = 3400μF + 3400μF = 6800μF
+```
+
+This configuration:
+- Increases energy storage capacity
+- Reduces equivalent series resistance (ESR)
+- Improves energy harvesting efficiency
+
 ### Energy Calculation
 The system uses the following formula to calculate energy:
 ```
@@ -139,7 +217,7 @@ E = 0.5 × C × V²
 ```
 Where:
 - E = Energy in joules (J)
-- C = Capacitance in farads (F)
+- C = Total capacitance in farads (6800μF = 0.0068F)
 - V = Voltage in volts (V)
 
 ### Runtime Estimation
