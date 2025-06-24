@@ -1,19 +1,29 @@
 # Piezoelectric Road Power Simulator with ESP8266 + Node.js
 
-A full-stack simulation system for piezoelectric road energy harvesting that demonstrates how energy can be captured from vehicle passes and converted into usable electrical power. This project combines hardware components with real-time data visualization to provide insights into renewable energy generation from roadway vibrations.
+A full-stack energy harvesting system that captures mechanical energy from road vibrations using piezoelectric elements, stores the collected energy in batteries, and uses it to power LED lighting. This project combines hardware components with real-time data visualization to provide insights into renewable energy generation from roadway vibrations.
 
 ![Piezoelectric Energy Harvesting System](https://via.placeholder.com/800x400?text=Piezoelectric+Road+Power+Simulator)
 
 ## 📋 Overview
 
-The Piezoelectric Road Power Simulator demonstrates energy harvesting from road vibrations using piezoelectric transducers. As vehicles pass over the piezoelectric elements, mechanical stress is converted into electrical energy, which is then captured, measured, and visualized in real-time on a dashboard.
+The Piezoelectric Road Power Simulator demonstrates a complete renewable energy cycle:
+
+1. **Energy Harvesting**: Piezoelectric transducers convert mechanical pressure from vehicle passes into electrical energy
+2. **Energy Storage**: Harvested energy is stored in dual 3400μF capacitors (6800μF total) and transferred to a battery
+3. **Energy Utilization**: The stored energy powers LED lighting, creating a self-sustaining illumination system
+4. **Monitoring System**: All aspects of energy generation, storage, and consumption are visualized in real-time
+
+This closed-loop system represents a practical application of piezoelectric energy harvesting that can be implemented in smart roads and high-traffic areas to power roadside lighting.
 
 ### Key Features
 
-- **Energy Harvesting Simulation**: Uses piezoelectric discs to convert mechanical pressure into electrical energy
+- **Complete Energy Cycle**: Harvests, stores, and utilizes energy in a self-contained system
+- **Dual Capacitor Storage**: Uses two 3400μF capacitors in parallel for efficient energy collection
+- **Battery Integration**: Transfers harvested energy to rechargeable batteries for long-term storage
+- **LED Illumination**: Powers LED lights directly from harvested road energy
 - **Real-time Monitoring**: Displays voltage, energy, and power metrics on a responsive dashboard
 - **Vehicle Detection**: Counts vehicle passes and correlates with energy generation
-- **Energy Analysis**: Calculates potential runtime for LEDs or other low-power devices
+- **Energy Analysis**: Calculates potential runtime for LEDs based on harvested energy
 - **Power Insights**: Shows historical data and energy generation patterns
 - **Dual Operation Modes**: Live data from hardware or demo mode with simulated data
 
