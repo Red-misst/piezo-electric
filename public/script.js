@@ -1,10 +1,8 @@
-// Simple icon replacements (since React Icons is causing issues)
+// Simple icon replacements
 const icons = {
     voltage: '⚡',
     car: '🚗',
     battery: '🔋',
-    clock: '🕐',
-    power: '⚡',
     wifiOn: '📶',
     wifiOff: '📵'
 };
@@ -13,7 +11,7 @@ const icons = {
 let socket;
 let isConnected = false;
 let esp8266Connected = false;
-let voltageChart, energyPowerChart, trafficChart;
+let voltageChart, energyPowerChart;
 let voltageData = [];
 let timestamps = [];
 let energyData = [];
@@ -29,38 +27,27 @@ let currentChartType = 'energy'; // Default chart type
 const voltageValue = document.getElementById('voltage-value');
 const passCountValue = document.getElementById('pass-count-value');
 const energyValue = document.getElementById('energy-value');
-const runtimeValue = document.getElementById('runtime-value');
-const powerValue = document.getElementById('power-value');
-const batteryValue = document.getElementById('battery-value');
-const batteryLevel = document.getElementById('battery-level');
 const connectionStatus = document.getElementById('connection-status');
 const esp8266Status = document.getElementById('esp8266-status');
 const voltageIcon = document.getElementById('voltage-icon');
 const passCountIcon = document.getElementById('pass-count-icon');
 const energyIcon = document.getElementById('energy-icon');
-const runtimeIcon = document.getElementById('runtime-icon');
 const realtimeToggle = document.getElementById('realtime-toggle');
 const timeRangeSelect = document.getElementById('time-range');
 const liveModeBtn = document.getElementById('live-mode-btn');
 const demoModeBtn = document.getElementById('demo-mode-btn');
 const energyChartTypeBtn = document.getElementById('energy-chart-type');
-const powerChartTypeBtn = document.getElementById('power-chart-type');
 const peakVoltageValue = document.getElementById('peak-voltage');
 const avgEnergyValue = document.getElementById('avg-energy');
-const ledRangeValue = document.getElementById('led-range');
-const peakTrafficTimeValue = document.getElementById('peak-traffic-time');
-const trafficDensityValue = document.getElementById('traffic-density');
-const energyEfficiencyValue = document.getElementById('energy-efficiency');
 
 // Render simple icons
 function renderIcons() {
     voltageIcon.textContent = icons.voltage;
     passCountIcon.textContent = icons.car;
     energyIcon.textContent = icons.battery;
-    runtimeIcon.textContent = icons.clock;
-    
+
     // Style the icons
-    [voltageIcon, passCountIcon, energyIcon, runtimeIcon].forEach(icon => {
+    [voltageIcon, passCountIcon, energyIcon].forEach(icon => {
         icon.style.fontSize = '30px';
         icon.style.display = 'flex';
         icon.style.alignItems = 'center';
@@ -72,7 +59,6 @@ function renderIcons() {
 function initCharts() {
     initVoltageChart();
     initEnergyPowerChart();
-    initTrafficChart();
 }
 
 // Initialize Voltage Chart
@@ -286,63 +272,6 @@ function initEnergyPowerChart() {
     });
 }
 
-// Initialize Traffic Chart
-function initTrafficChart() {
-    const ctx = document.getElementById('traffic-chart').getContext('2d');
-    
-    trafficChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: ['00:00', '03:00', '06:00', '09:00', '12:00', '15:00', '18:00', '21:00'],
-            datasets: [{
-                label: 'Vehicle Passes',
-                data: [0, 0, 0, 0, 0, 0, 0, 0],
-                backgroundColor: 'rgba(100, 255, 218, 0.6)',
-                borderColor: '#64ffda',
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    display: false
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(27, 45, 69, 0.9)',
-                    titleColor: '#64ffda',
-                    bodyColor: '#e6f1ff',
-                    borderColor: '#64ffda',
-                    borderWidth: 1
-                }
-            },
-            scales: {
-                x: {
-                    display: true,
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    },
-                    ticks: {
-                        color: '#a8b2d1'
-                    }
-                },
-                y: {
-                    display: true,
-                    grid: {
-                        color: 'rgba(255, 255, 255, 0.1)'
-                    },
-                    ticks: {
-                        color: '#a8b2d1',
-                        beginAtZero: true,
-                        stepSize: 10
-                    }
-                }
-            }
-        }
-    });
-}
-
 // Format timestamp for chart label
 function formatTimestamp(date) {
     if (typeof date === 'string') {
@@ -430,83 +359,6 @@ function updateEnergyPowerChart(energyValue, powerValue, timestamp) {
     energyPowerChart.update('none');
 }
 
-// Update traffic chart using historical data
-function updateTrafficChart() {
-    if (!historyData || !historyData.timestamps || historyData.timestamps.length === 0) {
-        return;
-    }
-    
-    // Process histogram data by hour
-    const hourCounts = Array(8).fill(0); // 8 3-hour time slots
-    let totalPasses = 0;
-    let peakHour = 0;
-    let peakCount = 0;
-    
-    for (let i = 0; i < historyData.timestamps.length; i++) {
-        const timestamp = new Date(historyData.timestamps[i]);
-        const hour = timestamp.getHours();
-        const slot = Math.floor(hour / 3); // 3-hour slots
-        
-        // If this is the last data point or there was a change in pass count
-        if (i === 0 || historyData.passCount[i] > historyData.passCount[i-1]) {
-            const passesInThisInterval = i === 0 ? historyData.passCount[i] : 
-                                                  historyData.passCount[i] - historyData.passCount[i-1];
-            hourCounts[slot] += passesInThisInterval;
-            totalPasses += passesInThisInterval;
-            
-            // Check if this is a new peak
-            if (hourCounts[slot] > peakCount) {
-                peakCount = hourCounts[slot];
-                peakHour = slot;
-            }
-        }
-    }
-    
-    // Update chart data
-    trafficChart.data.datasets[0].data = hourCounts;
-    trafficChart.update();
-    
-    // Format peak traffic time display
-    const peakTimeStart = (peakHour * 3).toString().padStart(2, '0') + ':00';
-    const peakTimeEnd = ((peakHour * 3) + 3).toString().padStart(2, '0') + ':00';
-    peakTrafficTimeValue.textContent = `${peakTimeStart} - ${peakTimeEnd}`;
-    
-    // Calculate traffic density
-    const averagePasses = totalPasses / 8; // Average per 3-hour slot
-    let densityLabel = 'Low';
-    
-    if (peakCount > averagePasses * 2) {
-        densityLabel = 'High';
-    } else if (peakCount > averagePasses * 1.5) {
-        densityLabel = 'Medium';
-    }
-    
-    trafficDensityValue.textContent = densityLabel;
-    
-    // Determine energy efficiency
-    let efficiency;
-    if (historyData.energy && historyData.energy.length > 0 && totalPasses > 0) {
-        const lastEnergy = historyData.energy[historyData.energy.length - 1];
-        const energyPerPass = lastEnergy / totalPasses;
-        
-        if (energyPerPass > 0.0005) {
-            efficiency = 'Excellent';
-            energyEfficiencyValue.style.color = '#64ffda';
-        } else if (energyPerPass > 0.0002) {
-            efficiency = 'Good';
-            energyEfficiencyValue.style.color = '#94e2cd';
-        } else {
-            efficiency = 'Fair';
-            energyEfficiencyValue.style.color = '#ffd700';
-        }
-    } else {
-        efficiency = 'Unknown';
-        energyEfficiencyValue.style.color = '#a8b2d1';
-    }
-    
-    energyEfficiencyValue.textContent = efficiency;
-}
-
 // Clear chart data
 function clearChart() {
     timestamps = [];
@@ -527,13 +379,8 @@ function resetUIValues() {
     voltageValue.textContent = '0.00';
     passCountValue.textContent = '0';
     energyValue.textContent = '0.0000';
-    runtimeValue.textContent = '0.0';
-    powerValue.textContent = '0.0000';
-    batteryValue.textContent = '0';
-    batteryLevel.style.width = '0%';
     peakVoltageValue.textContent = '0 V';
     avgEnergyValue.textContent = '0 J';
-    ledRangeValue.textContent = '0 hrs';
     clearChart();
     console.log('UI values reset to zero');
 }
@@ -546,21 +393,6 @@ function animateValue(element) {
     }, 1000);
 }
 
-// Update battery visual
-function updateBatteryVisual(percentage) {
-    const level = Math.max(0, Math.min(100, Math.round(percentage * 100)));
-    batteryLevel.style.width = `${level}%`;
-    
-    // Change color based on battery level
-    if (level < 20) {
-        batteryLevel.style.backgroundColor = '#ff6b6b'; // Red for low
-    } else if (level < 50) {
-        batteryLevel.style.backgroundColor = '#ffd700'; // Yellow for medium
-    } else {
-        batteryLevel.style.backgroundColor = '#64ffda'; // Green for high
-    }
-}
-
 // Update UI with new data
 function updateUI(data) {
     console.log('Updating UI with data:', data);
@@ -568,13 +400,9 @@ function updateUI(data) {
     // Format values with appropriate precision
     const formattedVoltage = data.voltage.toFixed(2);
     const formattedEnergy = data.energy.toFixed(4);
-    const formattedRuntime = data.estimatedRuntime.toFixed(1);
     
     // Get insights from data
     const insights = data.insights || {};
-    const formattedPower = insights.power ? insights.power.toFixed(6) : '0.000000';
-    const batteryPercent = insights.batteryChargePercent ? 
-        Math.round(insights.batteryChargePercent * 100) : 0;
     
     // Update mode buttons to reflect current mode
     updateModeButtons(data.mode || currentMode);
@@ -611,30 +439,10 @@ function updateUI(data) {
         animateValue(energyValue);
     }
     
-    if (runtimeValue.textContent !== formattedRuntime) {
-        runtimeValue.textContent = formattedRuntime;
-        animateValue(runtimeValue);
-    }
-    
-    if (powerValue.textContent !== formattedPower) {
-        powerValue.textContent = formattedPower;
-        animateValue(powerValue);
-    }
-    
-    if (batteryValue.textContent !== batteryPercent.toString()) {
-        batteryValue.textContent = batteryPercent;
-        animateValue(batteryValue);
-        updateBatteryVisual(insights.batteryChargePercent || 0);
-    }
-    
     // Update insights if available
     if (insights) {
         peakVoltageValue.textContent = `${insights.peakVoltage?.toFixed(2) || '0'} V`;
         avgEnergyValue.textContent = `${insights.avgEnergyPerVehicle?.toFixed(6) || '0'} J`;
-        
-        // Calculate LED runtime in hours
-        const runtimeHours = (data.estimatedRuntime / 3600).toFixed(2);
-        ledRangeValue.textContent = `${runtimeHours} hrs`;
         
         // Update energy/power chart if timeseries data is available
         if (insights.timeSeriesData && 
@@ -714,9 +522,6 @@ function processHistoricalData(data) {
     
     historyData = data;
     console.log('Historical data received:', data);
-    
-    // Update the traffic chart with historical data
-    updateTrafficChart();
 }
 
 // Switch monitoring mode
@@ -859,20 +664,9 @@ demoModeBtn.addEventListener('click', function() {
 energyChartTypeBtn.addEventListener('click', function() {
     currentChartType = 'energy';
     energyChartTypeBtn.classList.add('active');
-    powerChartTypeBtn.classList.remove('active');
     
     energyPowerChart.data.datasets[0].hidden = false;
     energyPowerChart.data.datasets[1].hidden = true;
-    energyPowerChart.update();
-});
-
-powerChartTypeBtn.addEventListener('click', function() {
-    currentChartType = 'power';
-    powerChartTypeBtn.classList.add('active');
-    energyChartTypeBtn.classList.remove('active');
-    
-    energyPowerChart.data.datasets[0].hidden = true;
-    energyPowerChart.data.datasets[1].hidden = false;
     energyPowerChart.update();
 });
 

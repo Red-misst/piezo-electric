@@ -9,18 +9,17 @@ A full-stack energy harvesting system that captures mechanical energy from road 
 The Piezoelectric Road Power Simulator demonstrates a complete renewable energy cycle:
 
 1. **Energy Harvesting**: Piezoelectric transducers convert mechanical pressure from vehicle passes into electrical energy
-2. **Energy Storage**: Harvested energy is stored in dual 3400μF capacitors (6800μF total) and transferred to a battery
-3. **Energy Utilization**: The stored energy powers LED lighting, creating a self-sustaining illumination system
+2. **Energy Storage**: Harvested energy is stored in a 470µF capacitor
+3. **Energy Utilization**: The stored energy powers LED lighting directly from the capacitor discharge
 4. **Monitoring System**: All aspects of energy generation, storage, and consumption are visualized in real-time
 
-This closed-loop system represents a practical application of piezoelectric energy harvesting that can be implemented in smart roads and high-traffic areas to power roadside lighting.
+This closed-loop system represents a practical application of piezoelectric energy harvesting that can be implemented in smart roads and high-traffic areas to power roadside lighting through direct capacitor discharge.
 
 ### Key Features
 
 - **Complete Energy Cycle**: Harvests, stores, and utilizes energy in a self-contained system
-- **Dual Capacitor Storage**: Uses two 3400μF capacitors in parallel for efficient energy collection
-- **Battery Integration**: Transfers harvested energy to rechargeable batteries for long-term storage
-- **LED Illumination**: Powers LED lights directly from harvested road energy
+- **Capacitor Storage**: Uses a single 470µF capacitor for energy collection
+- **Direct LED Power**: Powers LED lights directly from the capacitor storage
 - **Real-time Monitoring**: Displays voltage, energy, and power metrics on a responsive dashboard
 - **Vehicle Detection**: Counts vehicle passes and correlates with energy generation
 - **Energy Analysis**: Calculates potential runtime for LEDs based on harvested energy
@@ -50,9 +49,8 @@ This closed-loop system represents a practical application of piezoelectric ener
 flowchart TB
     subgraph "Hardware Layer"
         PZ[Piezoelectric Array]
-        RECT[Rectifier Circuit]
-        CAP[2x 3400μF Capacitors]
-        BOOST[DC-DC Boost Converter]
+        CAP[470µF Capacitor]
+        LED[LED Light]
         ESP[ESP8266 Microcontroller]
     end
     
@@ -68,11 +66,9 @@ flowchart TB
         STATS[Power Statistics]
     end
     
-    PZ --> RECT
-    RECT --> CAP
-    CAP --> BOOST
+    PZ --> CAP
+    CAP --> LED
     CAP --> ESP
-    BOOST --> ESP
     ESP --> |WebSocket| WSSERVER
     WSSERVER --> NODE
     NODE --> DATAPROC
@@ -112,9 +108,10 @@ sequenceDiagram
 
 - ESP8266 NodeMCU or Wemos D1 Mini
 - 9× Piezoelectric disc transducers (1 for detection, 8 for power generation)
-- Rectifier circuit (bridge rectifier or diodes)
-- **2× 3400μF capacitors** (connected in parallel for energy storage)
-- Voltage divider for analog readings (100kΩ/47kΩ)
+- **470µF capacitor** for energy storage
+- **Zener diode (3.3V)** for voltage regulation and car detection
+- **10kΩ resistor** for voltage divider circuit
+- **100kΩ resistor** for analog input protection
 - Tactile switch for simulating vehicle passes
 - Status LEDs for visual indication
 - Breadboard and jumper wires
@@ -138,8 +135,8 @@ Follow these steps to set up and run the Piezoelectric Road Power Simulator:
 ### Step 1: Hardware Assembly
 See the detailed instructions in [ESP8266_SETUP.md](ESP8266_SETUP.md) for:
 - Piezoelectric array construction
-- Rectifier circuit wiring
-- Energy storage configuration using dual 3400μF capacitors
+- Energy storage configuration using 470µF capacitor
+- Direct LED connection to capacitor
 - ESP8266 connections
 - Testing procedures
 
@@ -197,38 +194,49 @@ See the detailed instructions in [ESP8266_SETUP.md](ESP8266_SETUP.md) for:
 - **Live Mode**: Connects to ESP8266 hardware for real data
 - **Demo Mode**: Simulates piezoelectric data for demonstration purposes
 
-## 🔋 Power Metrics
+### Power Metrics and Voltage Range
 
-The system calculates several key metrics:
+The system simulates realistic piezoelectric voltage generation with the following specifications:
 
-- **Voltage**: Direct reading from piezoelectric array (V)
-- **Energy**: Calculated using capacitor formula E = 0.5 × C × V² (J)
-- **Power**: Rate of energy generation (W)
-- **Runtime**: Estimated operating time for a load (e.g., LED) based on harvested energy
-- **Battery Charge**: Equivalent battery percentage based on energy harvested
+- **Voltage Range**: 2.0V to 7.2V (simulating different vehicle weights and speeds)
+- **Energy Storage**: Calculated in real-time using capacitor formula E = 0.5CV²
+- **Vehicle Detection**: Threshold-based counting using zener diode reference
+- **Power Calculation**: Rate of energy change over time (dE/dt)
+
+**Voltage Characteristics:**
+- **2.0-3.0V**: Light vehicles (motorcycles, small cars)
+- **3.0-5.0V**: Standard vehicles (cars, light trucks)  
+- **5.0-7.2V**: Heavy vehicles (trucks, buses)
+
+The 470µF capacitor provides sufficient energy storage for LED operation while maintaining realistic charge/discharge characteristics for road-based energy harvesting applications.
 
 ## 🧪 Technical Details
 
 ### Energy Storage Configuration
-The system uses two 3400μF capacitors in parallel:
+The system uses a single 470µF capacitor for energy storage:
 ```
-Total Capacitance = C₁ + C₂ = 3400μF + 3400μF = 6800μF
+Total Capacitance = 470µF
 ```
 
 This configuration:
-- Increases energy storage capacity
-- Reduces equivalent series resistance (ESR)
-- Improves energy harvesting efficiency
+- Provides sufficient energy storage for LED operation
+- Enables direct discharge to LED loads
+- Simplifies the circuit design
 
 ### Energy Calculation
-The system uses the following formula to calculate energy:
+The system uses the following formula to calculate energy stored in the 470µF capacitor:
 ```
 E = 0.5 × C × V²
 ```
 Where:
 - E = Energy in joules (J)
-- C = Total capacitance in farads (6800μF = 0.0068F)
-- V = Voltage in volts (V)
+- C = Total capacitance in farads (470µF = 0.00047F)
+- V = Voltage in volts (ranges from 2.0V to 7.2V)
+
+**Example Calculations:**
+- At 2.0V: E = 0.5 × 0.00047 × (2.0)² = 0.00094 J
+- At 4.5V: E = 0.5 × 0.00047 × (4.5)² = 0.0048 J  
+- At 7.2V: E = 0.5 × 0.00047 × (7.2)² = 0.0122 J
 
 ### Runtime Estimation
 LED runtime is calculated as:
@@ -240,6 +248,97 @@ Runtime (seconds) = Energy (J) / Power consumption (W)
 - **Protocol**: WebSocket for real-time bidirectional communication
 - **Data format**: JSON messages containing sensor readings and system status
 - **Update frequency**: 2 seconds (configurable)
+
+## 🚗 Vehicle Detection System
+
+The ESP8266 counts vehicles using a sophisticated voltage threshold detection circuit with a zener diode and resistor network. This system provides reliable vehicle counting by detecting voltage spikes generated when vehicles pass over the piezoelectric sensors.
+
+### Car Counting Circuit Design
+
+```
+Piezo Sensor → Bridge Rectifier → Zener Diode (3.3V) → ESP8266 ADC
+                                        ↓
+                                   10kΩ Resistor → GND
+```
+
+### How Vehicle Counting Works
+
+1. **Voltage Generation**: When a vehicle passes over the piezoelectric sensor, mechanical pressure generates an electrical voltage spike (typically 2-15V depending on vehicle weight and speed).
+
+2. **Voltage Regulation**: The zener diode (3.3V) acts as a voltage regulator and threshold detector:
+   - When voltage exceeds 3.3V, the zener conducts
+   - This creates a stable 3.3V signal at the ESP8266's analog input
+   - Voltages below 3.3V pass through proportionally
+
+3. **Threshold Detection**: The ESP8266 firmware continuously monitors the analog input (A0):
+   ```cpp
+   int rawValue = analogRead(A0);
+   float voltage = (rawValue / 1024.0) * 3.3;
+   
+   // Vehicle detected when voltage exceeds threshold
+   if (voltage > DETECTION_THRESHOLD && !vehicleDetected) {
+       vehicleCount++;
+       vehicleDetected = true;
+   }
+   ```
+
+4. **Debouncing**: A software debounce timer prevents multiple counts from a single vehicle:
+   ```cpp
+   unsigned long debounceDelay = 2000; // 2 seconds
+   if (millis() - lastDetectionTime > debounceDelay) {
+       vehicleDetected = false;
+   }
+   ```
+
+### Circuit Components Explained
+
+- **Zener Diode (3.3V)**: 
+  - Protects ESP8266 from voltage spikes
+  - Creates consistent voltage levels for reliable detection
+  - Acts as a voltage threshold reference
+
+- **10kΩ Pull-down Resistor**:
+  - Ensures ADC reads 0V when no vehicle is present
+  - Provides current path for zener diode operation
+  - Prevents floating input conditions
+
+- **100kΩ Input Protection Resistor**:
+  - Limits current into ESP8266 ADC pin
+  - Additional protection against voltage spikes
+  - Reduces noise in analog readings
+
+### Detection Algorithm
+
+The ESP8266 firmware implements a multi-stage detection algorithm:
+
+1. **Baseline Monitoring**: Continuously sample voltage every 100ms
+2. **Spike Detection**: Identify voltage increases above baseline + threshold
+3. **Validation**: Confirm spike duration (50-500ms typical for vehicles)
+4. **Counting**: Increment counter and start debounce timer
+5. **Reset**: Return to baseline monitoring after debounce period
+
+### Calibration and Sensitivity
+
+The system can be calibrated for different vehicle types:
+
+- **Light Vehicles (cars, motorcycles)**: 2.5V threshold
+- **Medium Vehicles (SUVs, trucks)**: 2.0V threshold  
+- **Heavy Vehicles (buses, semis)**: 1.5V threshold
+
+```cpp
+// Firmware configuration
+#define LIGHT_VEHICLE_THRESHOLD 2.5
+#define MEDIUM_VEHICLE_THRESHOLD 2.0
+#define HEAVY_VEHICLE_THRESHOLD 1.5
+```
+
+### Advantages of This Design
+
+1. **Reliable Detection**: Zener diode provides consistent voltage reference
+2. **Speed Independent**: Works regardless of vehicle speed
+3. **Weight Sensitive**: Heavier vehicles generate higher voltages
+4. **Low Power**: Only active during vehicle detection events
+5. **Simple Circuit**: Minimal components reduce failure points
 
 ## 🔄 Project Extensions
 

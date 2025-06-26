@@ -60,43 +60,11 @@
                 </div>
             </div>
             
-            <div class="widget">
-                <div class="widget-icon" id="runtime-icon">
-                    <!-- Icon will be inserted by JS -->
-                </div>
-                <div class="widget-content">
-                    <h2>Estimated LED Runtime</h2>
-                    <div class="widget-value" id="runtime-value">0</div>
-                    <div class="widget-unit">seconds</div>
-                </div>
-            </div>
+          
 
-            <div class="widget">
-                <div class="widget-icon" id="power-icon">
-                    ⚡
-                </div>
-                <div class="widget-content">
-                    <h2>Power Output</h2>
-                    <div class="widget-value" id="power-value">0</div>
-                    <div class="widget-unit">Watts</div>
-                </div>
-            </div>
+           
 
-            <div class="widget">
-                <div class="widget-icon" id="battery-icon">
-                    🔋
-                </div>
-                <div class="widget-content">
-                    <h2>Battery Charge</h2>
-                    <div class="widget-value" id="battery-value">0</div>
-                    <div class="widget-unit">%</div>
-                </div>
-                <div class="battery-visual-container">
-                    <div class="battery-visual">
-                        <div id="battery-level" class="battery-level" style="width: 0%"></div>
-                    </div>
-                </div>
-            </div>
+            
         </div>
         
         <div class="insights-section">
@@ -109,10 +77,6 @@
                 <div class="insight-card">
                     <h3>Avg Energy per Vehicle</h3>
                     <div class="insight-value" id="avg-energy">0 J</div>
-                </div>
-                <div class="insight-card">
-                    <h3>Estimated Range</h3>
-                    <div class="insight-value" id="led-range">0 hrs</div>
                 </div>
             </div>
         </div>
@@ -140,6 +104,7 @@
                 <h2>Energy</h2>
                 <div class="chart-controls">
                     <button id="energy-chart-type" class="toggle-btn active" data-type="energy">Energy</button>
+                    
                 </div>
             </div>
             <canvas id="energy-power-chart"></canvas>

@@ -18,18 +18,18 @@ const wss = new WebSocket.Server({
 
 // Store the latest data
 let latestData = {
-  voltage: 3.2,
+  voltage: 4.5, // Start with mid-range voltage
   passCount: 24, 
-  energy: 0.0123,
-  estimatedRuntime: 45.6,
+  energy: 0.0048,  // Calculated using E=0.5*C*V^2 with 470µF and 4.5V
+  estimatedRuntime: 0.048,  // Based on 0.1W LED power consumption
   mode: 'demo' // Add mode field to indicate data source
 };
 
 // Power insights data
 let powerInsights = {
-  totalEnergy: 0.0123,
-  avgEnergyPerVehicle: 0.000512,
-  peakVoltage: 3.9,
+  totalEnergy: 0.0048,  // Calculated with 470µF
+  avgEnergyPerVehicle: 0.0002,  // Average per vehicle pass
+  peakVoltage: 6.8,
   power: 0.0025,  // Watts
   batteryChargePercent: 0.34, // 0-1 scale
   lastUpdateTime: Date.now(),
@@ -64,24 +64,26 @@ function generateDemoData() {
   const now = Date.now();
   const timeDelta = (now - powerInsights.lastUpdateTime) / 1000; // seconds
   
-  // Simulate voltage fluctuation between 2.8V and 3.6V
-  latestData.voltage = Math.max(2.8, Math.min(3.6, latestData.voltage + (Math.random() - 0.5) * 0.2));
+  // Simulate voltage fluctuation between 2V and 7.2V
+  latestData.voltage = Math.max(2.0, Math.min(7.2, latestData.voltage + (Math.random() - 0.5) * 0.5));
   
   // Occasionally increment pass count (about 20% of the time)
   if (Math.random() < 0.2) {
     latestData.passCount++;
     
-    // Bigger energy spike when vehicle passes
-    const energyGain = 0.0008 + Math.random() * 0.0012;
+    // Bigger energy spike when vehicle passes (adjusted for 470µF capacitor)
+    const energyGain = 0.00006 + Math.random() * 0.00009;  // Smaller energy gain for 470µF
     latestData.energy += energyGain;
     powerInsights.totalEnergy += energyGain;
   }
   
-  // Slowly decrease energy (battery drain simulation)
-  latestData.energy = Math.max(0, latestData.energy - 0.0001);
+  // Calculate energy using E = 0.5 * C * V^2 (470µF capacitor)
+  const capacitance = 0.00047; // 470µF in Farads
+  latestData.energy = 0.5 * capacitance * Math.pow(latestData.voltage, 2);
   
-  // Calculate estimated runtime based on energy (arbitrary formula)
-  latestData.estimatedRuntime = latestData.energy * 4000;
+  // Calculate estimated runtime based on energy (LED power ~0.1W)
+  const ledPower = 0.1; // Watts
+  latestData.estimatedRuntime = latestData.energy / ledPower;
   
   // Update power insights
   powerInsights.avgEnergyPerVehicle = latestData.passCount > 0 ? 
