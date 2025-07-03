@@ -3,23 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Piezoelectric Road Energy Monitor</title>
+    <title>ESP32 Piezoelectric Energy Monitor</title>
     <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
 </head>
 <body>
     <header>
         <div class="header-content">
-            <h1>Piezoelectric Road Energy Monitor</h1>
+            <h1>ESP32 Piezoelectric Energy Monitor</h1>
             <div class="header-controls">
-                <div class="mode-toggle">
-                    <button id="live-mode-btn" class="mode-btn">Live Monitoring</button>
-                    <button id="demo-mode-btn" class="mode-btn active">Historical Test</button>
-                </div>
                 <div class="status-indicators">
                     <div id="connection-status" class="disconnected">Server: Disconnected</div>
-                    <div id="esp8266-status" class="disconnected">ESP8266: Disconnected</div>
+                    <div id="esp32-status" class="disconnected">ESP32: Disconnected</div>
                 </div>
             </div>
         </div>
@@ -33,7 +28,7 @@
                 </div>
                 <div class="widget-content">
                     <h2>Voltage</h2>
-                    <div class="widget-value" id="voltage-value">0</div>
+                    <div class="widget-value" id="voltage-value">0.00</div>
                     <div class="widget-unit">V</div>
                 </div>
             </div>
@@ -54,62 +49,32 @@
                     <!-- Icon will be inserted by JS -->
                 </div>
                 <div class="widget-content">
-                    <h2>Total Energy</h2>
-                    <div class="widget-value" id="energy-value">0</div>
+                    <h2>Energy</h2>
+                    <div class="widget-value" id="energy-value">0.0000</div>
                     <div class="widget-unit">Joules</div>
                 </div>
             </div>
-            
-          
-
-           
-
-            
         </div>
         
-        <div class="insights-section">
-            <h2>Power Insights</h2>
-            <div class="insight-cards">
-                <div class="insight-card">
-                    <h3>Peak Voltage</h3>
-                    <div class="insight-value" id="peak-voltage">0 V</div>
-                </div>
-                <div class="insight-card">
-                    <h3>Avg Energy per Vehicle</h3>
-                    <div class="insight-value" id="avg-energy">0 J</div>
-                </div>
-            </div>
-        </div>
-
         <div class="chart-container">
             <div class="chart-header">
-                <h2>Voltage History</h2>
+                <h2>Voltage History (Live Data)</h2>
                 <div class="chart-controls">
                     <button id="realtime-toggle" class="active">Real-time</button>
-                    <select title="Select time range" id="time-range">
-                        <option value="1">1 minute</option>
-                        <option value="5">5 minutes</option>
-                        <option value="15">15 minutes</option>
-                        <option value="60">1 hour</option>
-                        <option value="360">6 hours</option>
-                        <option value="1440">24 hours</option>
-                    </select>
                 </div>
             </div>
             <canvas id="voltage-chart"></canvas>
         </div>
-
+        
         <div class="chart-container">
             <div class="chart-header">
-                <h2>Energy</h2>
+                <h2>Energy History (Live Data)</h2>
                 <div class="chart-controls">
-                    <button id="energy-chart-type" class="toggle-btn active" data-type="energy">Energy</button>
-                    
+                    <button id="energy-realtime-toggle" class="active">Real-time</button>
                 </div>
             </div>
-            <canvas id="energy-power-chart"></canvas>
+            <canvas id="energy-chart"></canvas>
         </div>
-
     </main>
 
     <script src="script.js"></script>

@@ -2,6 +2,7 @@ const express = require('express');
 const http = require('http');
 const WebSocket = require('ws');
 const path = require('path');
+const fs = require('fs');
 
 // Initialize Express app
 const app = express();
@@ -18,20 +19,20 @@ const wss = new WebSocket.Server({
 
 // Store the latest data
 let latestData = {
-  voltage: 4.5, // Start with mid-range voltage
-  passCount: 24, 
-  energy: 0.0048,  // Calculated using E=0.5*C*V^2 with 470µF and 4.5V
-  estimatedRuntime: 0.048,  // Based on 0.1W LED power consumption
+  voltage: 0,
+  passCount: 0, 
+  energy: 0,
+  estimatedRuntime: 0,
   mode: 'demo' // Add mode field to indicate data source
 };
 
 // Power insights data
 let powerInsights = {
-  totalEnergy: 0.0048,  // Calculated with 470µF
-  avgEnergyPerVehicle: 0.0002,  // Average per vehicle pass
-  peakVoltage: 6.8,
-  power: 0.0025,  // Watts
-  batteryChargePercent: 0.34, // 0-1 scale
+  totalEnergy: 0,
+  avgEnergyPerVehicle: 0,
+  peakVoltage: 0,
+  power: 0,
+  batteryChargePercent: 0,
   lastUpdateTime: Date.now(),
   timestamps: [],
   voltageHistory: [],
@@ -49,15 +50,31 @@ const webClients = new Set();
 let esp8266Client = null;
 let esp8266LastSeen = null;
 
-// Historical data storage - limit to last 24 hours with 5-minute intervals
-const HISTORY_MAX_POINTS = 288; // 24 hours * 12 points per hour (5-minute intervals)
-const historyData = {
-  timestamps: [],
-  voltage: [],
-  energy: [],
-  power: [],
-  passCount: []
-};
+// Create logs directory if it doesn't exist
+const logsDir = path.join(__dirname, 'logs');
+if (!fs.existsSync(logsDir)){
+  fs.mkdirSync(logsDir);
+}
+
+// Logger function for ESP32 data
+function logESP32Data(data) {
+  const timestamp = new Date().toISOString();
+  const logData = {
+    timestamp,
+    ...data
+  };
+  
+  const logFilePath = path.join(logsDir, `esp32_data_${new Date().toISOString().split('T')[0]}.log`);
+  fs.appendFile(
+    logFilePath, 
+    JSON.stringify(logData) + '\n', 
+    err => {
+      if (err) console.error('Error writing to log file:', err);
+    }
+  );
+  
+  console.log('ESP32 DATA RECEIVED:', JSON.stringify(logData));
+}
 
 // Function to generate random fluctuations for demo data
 function generateDemoData() {
@@ -115,9 +132,6 @@ function generateDemoData() {
   
   powerInsights.lastUpdateTime = now;
   
-  // Update historical data (every 5 minutes)
-  updateHistoricalData();
-  
   // Round values to reasonable precision
   latestData.voltage = parseFloat(latestData.voltage.toFixed(2));
   latestData.energy = parseFloat(latestData.energy.toFixed(4));
@@ -145,35 +159,14 @@ function generateDemoData() {
   return combinedData;
 }
 
-// Update historical data at 5-minute intervals
-function updateHistoricalData() {
-  const now = new Date();
-  
-  // Only update every 5 minutes
-  if (historyData.timestamps.length === 0 || 
-      (now - new Date(historyData.timestamps[historyData.timestamps.length-1])) >= 5*60*1000) {
-    
-    historyData.timestamps.push(now.toISOString());
-    historyData.voltage.push(latestData.voltage);
-    historyData.energy.push(latestData.energy);
-    historyData.power.push(powerInsights.power);
-    historyData.passCount.push(latestData.passCount);
-    
-    // Limit history to HISTORY_MAX_POINTS
-    if (historyData.timestamps.length > HISTORY_MAX_POINTS) {
-      historyData.timestamps.shift();
-      historyData.voltage.shift();
-      historyData.energy.shift();
-      historyData.power.shift();
-      historyData.passCount.shift();
-    }
-  }
-}
-
 // Broadcast status update to all web clients
 function broadcastStatus() {
   const statusMessage = JSON.stringify({
     type: 'status',
+    // Update to use ESP32 naming
+    esp32Connected: esp8266Client !== null && esp8266Client.readyState === WebSocket.OPEN,
+    esp32LastSeen: esp8266LastSeen,
+    // Keep original names for backward compatibility
     esp8266Connected: esp8266Client !== null && esp8266Client.readyState === WebSocket.OPEN,
     esp8266LastSeen: esp8266LastSeen
   });
@@ -189,25 +182,28 @@ function broadcastStatus() {
 wss.on('connection', (ws, req) => {
   console.log('Client connected from:', req.socket.remoteAddress);
   
-  // Determine if this is ESP8266 or web client based on User-Agent or a custom header
+  // Determine if this is ESP32/ESP8266 or web client based on User-Agent or a custom header
   const userAgent = req.headers['user-agent'] || '';
-  const isESP8266 = userAgent.includes('ESP8266') || req.headers['x-client-type'] === 'esp8266';
+  const isESP = userAgent.includes('ESP8266') || 
+                userAgent.includes('ESP32') || 
+                req.headers['x-client-type'] === 'esp8266' || 
+                req.headers['x-client-type'] === 'esp32';
   
-  if (isESP8266) {
-    console.log('ESP8266 device connected');
+  if (isESP) {
+    console.log('ESP32 device connected');
     esp8266Client = ws;
     esp8266LastSeen = new Date();
     
-    // Reset energy when ESP8266 first connects
+    // Reset energy when ESP first connects
     if (latestData.mode !== 'live') {
       powerInsights.totalEnergy = 0;
       latestData.energy = 0;
     }
     
-    // Mark as live mode when ESP8266 connects
+    // Mark as live mode when ESP connects
     latestData.mode = 'live';
     
-    // Notify all web clients about ESP8266 connection
+    // Notify all web clients about ESP connection
     broadcastStatus();
   } else {
     console.log('Web client connected');
@@ -234,17 +230,11 @@ wss.on('connection', (ws, req) => {
     
     ws.send(JSON.stringify({ type: 'data', data: dataToSend }));
     
-    // Send historical data
-    ws.send(JSON.stringify({
-      type: 'history',
-      data: historyData
-    }));
-    
     // Send current status
     const statusMessage = JSON.stringify({
       type: 'status',
-      esp8266Connected: esp8266Client !== null && esp8266Client.readyState === WebSocket.OPEN,
-      esp8266LastSeen: esp8266LastSeen
+      esp32Connected: esp8266Client !== null && esp8266Client.readyState === WebSocket.OPEN,
+      esp32LastSeen: esp8266LastSeen
     });
     ws.send(statusMessage);
   }
@@ -254,12 +244,12 @@ wss.on('connection', (ws, req) => {
     try {
       const parsedMessage = JSON.parse(message);
       
-      if (isESP8266) {
-        // Handle ESP8266 data
-        if (parsedMessage.voltage !== undefined && 
-            parsedMessage.passCount !== undefined &&
-            parsedMessage.energy !== undefined &&
-            parsedMessage.estimatedRuntime !== undefined) {
+      if (isESP) {
+        // Log ESP32 data
+        logESP32Data(parsedMessage);
+        
+        // Handle ESP32 data
+        if (parsedMessage.voltage !== undefined && parsedMessage.passCount !== undefined) {
           
           esp8266LastSeen = new Date();
           
@@ -269,9 +259,16 @@ wss.on('connection', (ws, req) => {
           const now = Date.now();
           const timeDelta = (now - powerInsights.lastUpdateTime) / 1000; // seconds
           
+          // Calculate energy using capacitor formula if not provided
+          const capacitance = 0.00047; // 470µF in Farads
+          const calculatedEnergy = 0.5 * capacitance * Math.pow(parsedMessage.voltage, 2);
+          
           // Update latest data
           latestData = {
-            ...parsedMessage,
+            voltage: parsedMessage.voltage,
+            passCount: parsedMessage.passCount,
+            energy: parsedMessage.energy || calculatedEnergy,
+            estimatedRuntime: parsedMessage.estimatedRuntime || (calculatedEnergy / 0.1),
             mode: 'live'
           };
           
@@ -309,10 +306,7 @@ wss.on('connection', (ws, req) => {
           
           powerInsights.lastUpdateTime = now;
           
-          // Update historical data (every 5 minutes)
-          updateHistoricalData();
-          
-          console.log('Received data from ESP8266:', latestData);
+          console.log('Received data from ESP32:', latestData);
           
           // Add power insights to data before broadcasting
           const dataToSend = {
@@ -340,69 +334,67 @@ wss.on('connection', (ws, req) => {
         if (parsedMessage.type === 'mode') {
           console.log(`Web client requested mode switch to: ${parsedMessage.mode}`);
           
-          if (parsedMessage.mode === 'live') {
-            // Reset data when switching to live mode (unless ESP8266 is connected)
-            if (!esp8266Client || esp8266Client.readyState !== WebSocket.OPEN) {
-              latestData = {
-                voltage: 0,
-                passCount: 0,
-                energy: 0,
-                estimatedRuntime: 0,
-                mode: 'live'
-              };
-              
-              powerInsights = {
-                totalEnergy: 0,
-                avgEnergyPerVehicle: 0,
-                peakVoltage: 0,
-                power: 0,
-                batteryChargePercent: 0,
-                lastUpdateTime: Date.now(),
-                timestamps: [],
-                voltageHistory: [],
-                energyHistory: [],
-                powerHistory: []
-              };
-            } else {
-              latestData.mode = 'live';
-            }
-          } else {
-            latestData.mode = 'demo';
-            // Keep existing demo values, don't reset
-          }
-          
-          // Send immediate response to mode change request
-          ws.send(JSON.stringify({
-            type: 'mode_change',
-            mode: latestData.mode
-          }));
-          
-          // If switching to live mode and no ESP8266, send reset data
-          if (parsedMessage.mode === 'live' && (!esp8266Client || esp8266Client.readyState !== WebSocket.OPEN)) {
-            const dataToSend = {
-              ...latestData,
-              insights: {
-                totalEnergy: parseFloat(powerInsights.totalEnergy.toFixed(4)),
-                avgEnergyPerVehicle: parseFloat(powerInsights.avgEnergyPerVehicle.toFixed(6)),
-                peakVoltage: parseFloat(powerInsights.peakVoltage.toFixed(2)),
-                power: parseFloat(powerInsights.power.toFixed(6)),
-                batteryChargePercent: parseFloat(powerInsights.batteryChargePercent.toFixed(2)),
-                timeSeriesData: {
-                  timestamps: powerInsights.timestamps.map(t => t.toISOString()),
-                  voltage: powerInsights.voltageHistory,
-                  energy: powerInsights.energyHistory,
-                  power: powerInsights.powerHistory
-                }
+          if (parsedMessage.type === 'mode') {
+            console.log(`Web client requested mode switch to: ${parsedMessage.mode}`);
+            
+            if (parsedMessage.mode === 'live') {
+              // Reset data when switching to live mode (unless ESP8266 is connected)
+              if (!esp8266Client || esp8266Client.readyState !== WebSocket.OPEN) {
+                latestData = {
+                  voltage: 0,
+                  passCount: 0,
+                  energy: 0,
+                  estimatedRuntime: 0,
+                  mode: 'live'
+                };
+                
+                powerInsights = {
+                  totalEnergy: 0,
+                  avgEnergyPerVehicle: 0,
+                  peakVoltage: 0,
+                  power: 0,
+                  batteryChargePercent: 0,
+                  lastUpdateTime: Date.now(),
+                  timestamps: [],
+                  voltageHistory: [],
+                  energyHistory: [],
+                  powerHistory: []
+                };
+              } else {
+                latestData.mode = 'live';
               }
-            };
-            ws.send(JSON.stringify({ type: 'data', data: dataToSend }));
+            } else {
+              latestData.mode = 'demo';
+              // Keep existing demo values, don't reset
+            }
+            
+            // Send immediate response to mode change request
+            ws.send(JSON.stringify({
+              type: 'mode_change',
+              mode: latestData.mode
+            }));
+            
+            // If switching to live mode and no ESP8266, send reset data
+            if (parsedMessage.mode === 'live' && (!esp8266Client || esp8266Client.readyState !== WebSocket.OPEN)) {
+              const dataToSend = {
+                ...latestData,
+                insights: {
+                  totalEnergy: parseFloat(powerInsights.totalEnergy.toFixed(4)),
+                  avgEnergyPerVehicle: parseFloat(powerInsights.avgEnergyPerVehicle.toFixed(6)),
+                  peakVoltage: parseFloat(powerInsights.peakVoltage.toFixed(2)),
+                  power: parseFloat(powerInsights.power.toFixed(6)),
+                  batteryChargePercent: parseFloat(powerInsights.batteryChargePercent.toFixed(2)),
+                  timeSeriesData: {
+                    timestamps: powerInsights.timestamps.map(t => t.toISOString()),
+                    voltage: powerInsights.voltageHistory,
+                    energy: powerInsights.energyHistory,
+                    power: powerInsights.powerHistory
+                  }
+                }
+              };
+              ws.send(JSON.stringify({ type: 'data', data: dataToSend }));
+            }
           }
-        } else if (parsedMessage.type === 'getHistory') {
-          // Client requested historical data
-          ws.send(JSON.stringify({
-            type: 'history',
-            data: historyData
-          }));
         }
       }
     } catch (e) {
@@ -411,11 +403,11 @@ wss.on('connection', (ws, req) => {
   });
   
   ws.on('close', () => {
-    if (isESP8266) {
-      console.log('ESP8266 disconnected');
+    if (isESP) {
+      console.log('ESP32 disconnected');
       esp8266Client = null;
       
-      // Switch back to demo mode when ESP8266 disconnects
+      // Switch back to demo mode when ESP32 disconnects
       latestData.mode = 'demo';
       
       // Notify all web clients
@@ -428,7 +420,7 @@ wss.on('connection', (ws, req) => {
   
   ws.on('error', (error) => {
     console.error('WebSocket error:', error);
-    if (isESP8266) {
+    if (isESP) {
       esp8266Client = null;
       broadcastStatus();
     } else {
@@ -467,12 +459,12 @@ function startDemoMode() {
   console.log('Demo mode started');
 }
 
-// Check ESP8266 connection health every 30 seconds
+// Check ESP32 connection health every 30 seconds
 setInterval(() => {
   if (esp8266Client && esp8266LastSeen) {
     const timeSinceLastSeen = Date.now() - esp8266LastSeen.getTime();
     if (timeSinceLastSeen > 60000) { // 1 minute timeout
-      console.log('ESP8266 timeout detected');
+      console.log('ESP32 timeout detected');
       esp8266Client = null;
       latestData.mode = 'demo';
       broadcastStatus();
