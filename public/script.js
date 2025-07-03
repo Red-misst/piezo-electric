@@ -87,14 +87,10 @@ function updateDashboard(data) {
     voltageElement.textContent = data.voltage.toFixed(2);
     animateValueUpdate(voltageElement);
     
-    // Update pass count
-    const passCountElement = document.getElementById('pass-count-value');
-    passCountElement.textContent = data.passCount;
-    animateValueUpdate(passCountElement);
-    
-    // Update energy
+    // Update energy (convert to microjoules and display as whole number)
     const energyElement = document.getElementById('energy-value');
-    energyElement.textContent = data.energy.toFixed(4);
+    const energyInMicrojoules = Math.round(data.energy * 1000000);
+    energyElement.textContent = energyInMicrojoules;
     animateValueUpdate(energyElement);
     
     // Update charts if they exist
@@ -294,9 +290,6 @@ function updateEnergyChart(timeSeriesData) {
 function addWidgetIcons() {
     // Voltage icon (⚡)
     document.getElementById('voltage-icon').innerHTML = '⚡';
-    
-    // Pass count icon (🚗)
-    document.getElementById('pass-count-icon').innerHTML = '🚗';
     
     // Energy icon (🔋)
     document.getElementById('energy-icon').innerHTML = '🔋';
