@@ -176,8 +176,7 @@ function initializeVoltageChart() {
                     grid: {
                         color: 'rgba(168, 178, 209, 0.1)'
                     },
-                    min: 0,
-                    max: 8
+                    min: 0
                 }
             },
             elements: {
