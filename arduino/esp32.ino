@@ -2,11 +2,7 @@
 #include <WebSocketsClient.h>
 #include <ArduinoJson.h>
 
-// // WiFi credentials
-// const char* ssid = "Redmi_12C";
-// const char* password = "nthome1092";
-
-
+// WiFi credentials
 const char* ssid = "Tenda_5C30C8";
 const char* password = "op898989..";
 
@@ -82,11 +78,12 @@ void loop() {
     voltageSamples[sampleIndex] = currentVoltage;
     sampleIndex = (sampleIndex + 1) % SAMPLES_PER_REPORT;
 
-    // Vehicle detection
+    // Vehicle detection using the same voltage measurement
     if (currentVoltage > VOLTAGE_THRESHOLD && !vehicleDetected && (now - lastVehicleTime > VEHICLE_GAP_TIME)) {
       vehicleDetected = true;
       lastVehicleTime = now;
       passCount++;
+      Serial.printf("Vehicle detected! Pass count: %d (Voltage: %.2fV)\n", passCount, currentVoltage);
     }
 
     if (currentVoltage < VOLTAGE_THRESHOLD && vehicleDetected) {
@@ -110,8 +107,17 @@ void loop() {
 }
 
 float readVoltage() {
-  int adcValue = analogRead(PIEZO_ADC_PIN);
-  return (adcValue / ADC_RESOLUTION) * VOLTAGE_REF;
+  // Take multiple readings and average them for better accuracy
+  int totalReading = 0;
+  const int numReadings = 5;
+  
+  for (int i = 0; i < numReadings; i++) {
+    totalReading += analogRead(PIEZO_ADC_PIN);
+    delayMicroseconds(100);
+  }
+  
+  int avgReading = totalReading / numReadings;
+  return (avgReading / ADC_RESOLUTION) * VOLTAGE_REF;
 }
 
 void connectToWiFi() {
