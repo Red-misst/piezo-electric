@@ -55,9 +55,7 @@ flowchart TB
     end
     
     subgraph "Server Layer"
-        NODE[Node.js Server]
-        WSSERVER[WebSocket Server]
-        DATAPROC[Data Processing]
+      
     end
     
     subgraph "Client Layer"
